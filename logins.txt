@@ -1,0 +1,9 @@
+## 👤 Demo Accounts
+
+Use these credentials for testing:
+
+| Role       | Email | Password | Permissions |
+|----------  |-------|----------|-------------|
+| Admin      | `admin.user@cooltech.com` | `password123` | Full system access + Security Dashboard |
+| Manager    | `manager.user@cooltech.com` | `password123` | Credential management + Security Dashboard |
+| Normal User | `normal.user@cooltech.com` | `password123` | View & add credentials only |

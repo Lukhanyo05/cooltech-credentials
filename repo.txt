@@ -1,0 +1,6 @@
+GitHub Repository: https://github.com/Lukhanyo05/cooltech-credentials
+
+Project Structure:
+- Frontend: /frontend
+- Backend: /backend
+

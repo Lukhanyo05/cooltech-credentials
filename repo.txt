@@ -1,6 +1,7 @@
-GitHub Repository: https://github.com/Lukhanyo05/cooltech-credentials
+# Create repo.txt file
+echo "GitHub Repository: https://github.com/Lukhanyo05/cooltech-credentials" > repo.txt
 
-Project Structure:
-- Frontend: /frontend
-- Backend: /backend
-
+# Add and commit the file
+git add repo.txt
+git commit -m "Add repository information file for submission"
+git push

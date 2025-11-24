@@ -1,42 +1,68 @@
-import axios from "axios";
-
-const API_URL = "http://localhost:5000/api";
-
-const api = axios.create({
-  baseURL: API_URL,
-});
-
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// frontend/src/services/credentialsService.js
+import api from "../utils/api";
 
 export const credentialsService = {
-  // Get all credentials for a division
-  getCredentials: async (divisionId) => {
-    const response = await api.get(`/credentials/division/${divisionId}`);
-    return response.data;
+  // Get all credentials for user's divisions
+  getMyCredentials: async () => {
+    try {
+      console.log("🔧 Fetching user credentials...");
+      const response = await api.get("/credentials/my-credentials");
+      console.log("✅ Credentials fetched successfully:", response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error fetching credentials:", error);
+      throw error;
+    }
   },
 
-  // Add new credential
-  addCredential: async (credentialData) => {
-    const response = await api.post("/credentials", credentialData);
-    return response.data;
+  // Get credentials for a specific division
+  getDivisionCredentials: async (divisionId) => {
+    try {
+      console.log(`🔧 Fetching credentials for division ${divisionId}`);
+      const response = await api.get(`/credentials/division/${divisionId}`);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error fetching division credentials:", error);
+      throw error;
+    }
+  },
+
+  // Create new credential
+  createCredential: async (credentialData) => {
+    try {
+      console.log("🔧 Creating new credential:", credentialData);
+      const response = await api.post("/credentials", credentialData);
+      console.log("✅ Credential created successfully");
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error creating credential:", error);
+      throw error;
+    }
   },
 
   // Update credential
-  updateCredential: async (id, credentialData) => {
-    const response = await api.put(`/credentials/${id}`, credentialData);
-    return response.data;
+  updateCredential: async (credentialId, updates) => {
+    try {
+      console.log(`🔧 Updating credential ${credentialId}:`, updates);
+      const response = await api.put(`/credentials/${credentialId}`, updates);
+      console.log("✅ Credential updated successfully");
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error updating credential:", error);
+      throw error;
+    }
   },
 
   // Delete credential
-  deleteCredential: async (id) => {
-    const response = await api.delete(`/credentials/${id}`);
-    return response.data;
+  deleteCredential: async (credentialId) => {
+    try {
+      console.log(`🔧 Deleting credential ${credentialId}`);
+      const response = await api.delete(`/credentials/${credentialId}`);
+      console.log("✅ Credential deleted successfully");
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error deleting credential:", error);
+      throw error;
+    }
   },
 };

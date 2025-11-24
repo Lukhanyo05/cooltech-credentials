@@ -1,3 +1,4 @@
+// backend/models/Credential.js
 const mongoose = require("mongoose");
 
 const credentialSchema = new mongoose.Schema(
@@ -18,7 +19,9 @@ const credentialSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    description: String,
+    description: {
+      type: String,
+    },
     division: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Division",
@@ -28,6 +31,10 @@ const credentialSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    lastUpdatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   {

@@ -1,12 +1,13 @@
+// backend/routes/userManagement.js
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const Division = require("../models/Division");
-const OrganizationalUnit = require("../models/OrganizationalUnit");
+const OrganisationalUnit = require("../models/OrganisationalUnit");
 const { auth } = require("../middleware/auth");
 const { check, validationResult } = require("express-validator");
 
-// Get all users (Admin only) - REMOVE DUPLICATE
+// Get all users (Admin only)
 router.get("/users", auth, async (req, res) => {
   try {
     console.log("GET /users - User making request:", req.user.email);
@@ -23,7 +24,7 @@ router.get("/users", auth, async (req, res) => {
     const users = await User.find()
       .select("-password")
       .populate("divisions", "name description")
-      .populate("organizationalUnits", "name description");
+      .populate("organisationalUnits", "name description");
 
     console.log("Users fetched successfully, count:", users.length);
     res.json(users);
@@ -54,24 +55,28 @@ router.put(
       const { role } = req.body;
       const userId = req.params.userId;
 
+      console.log(`🔧 Changing role for user ${userId} to ${role}`);
+
       // Prevent self-role change
       if (userId === req.user.id) {
         return res.status(400).json({ message: "Cannot change your own role" });
       }
 
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { role },
-        { new: true }
-      ).select("-password");
+      const user = await User.findByIdAndUpdate(userId, { role }, { new: true })
+        .select("-password")
+        .populate("divisions", "name description")
+        .populate("organisationalUnits", "name description");
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      console.log(
+        `✅ Role changed successfully for user ${user.email} to ${role}`
+      );
       res.json({ message: "User role updated successfully", user });
     } catch (error) {
-      console.error(error);
+      console.error("❌ Role change error:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -88,6 +93,8 @@ router.post("/users/:userId/divisions/:divisionId", auth, async (req, res) => {
     }
 
     const { userId, divisionId } = req.params;
+
+    console.log(`🔧 Assigning user ${userId} to division ${divisionId}`);
 
     const user = await User.findById(userId);
     const division = await Division.findById(divisionId);
@@ -107,24 +114,22 @@ router.post("/users/:userId/divisions/:divisionId", auth, async (req, res) => {
         .json({ message: "User already assigned to this division" });
     }
 
-    // Add division to user and user to division
+    // Add division to user
     user.divisions.push(divisionId);
-    division.users.push(userId);
-
     await user.save();
-    await division.save();
 
     const updatedUser = await User.findById(userId)
       .select("-password")
       .populate("divisions", "name description")
-      .populate("organizationalUnits", "name description");
+      .populate("organisationalUnits", "name description");
 
+    console.log(`✅ User ${user.email} assigned to division ${division.name}`);
     res.json({
       message: "User assigned to division successfully",
       user: updatedUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error assigning user to division:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -144,39 +149,33 @@ router.delete(
 
       const { userId, divisionId } = req.params;
 
+      console.log(`🔧 Unassigning user ${userId} from division ${divisionId}`);
+
       const user = await User.findById(userId);
-      const division = await Division.findById(divisionId);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      if (!division) {
-        return res.status(404).json({ message: "Division not found" });
-      }
-
-      // Remove division from user and user from division
+      // Remove division from user
       user.divisions = user.divisions.filter(
         (div) => div.toString() !== divisionId
       );
-      division.users = division.users.filter(
-        (user) => user.toString() !== userId
-      );
 
       await user.save();
-      await division.save();
 
       const updatedUser = await User.findById(userId)
         .select("-password")
         .populate("divisions", "name description")
-        .populate("organizationalUnits", "name description");
+        .populate("organisationalUnits", "name description");
 
+      console.log(`✅ User ${user.email} unassigned from division`);
       res.json({
         message: "User unassigned from division successfully",
         user: updatedUser,
       });
     } catch (error) {
-      console.error(error);
+      console.error("❌ Error unassigning user from division:", error);
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -194,8 +193,10 @@ router.post("/users/:userId/ous/:ouId", auth, async (req, res) => {
 
     const { userId, ouId } = req.params;
 
+    console.log(`🔧 Assigning user ${userId} to OU ${ouId}`);
+
     const user = await User.findById(userId);
-    const ou = await OrganizationalUnit.findById(ouId);
+    const ou = await OrganisationalUnit.findById(ouId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -206,30 +207,28 @@ router.post("/users/:userId/ous/:ouId", auth, async (req, res) => {
     }
 
     // Check if user is already assigned to this OU
-    if (user.organizationalUnits.includes(ouId)) {
+    if (user.organisationalUnits.includes(ouId)) {
       return res
         .status(400)
         .json({ message: "User already assigned to this organizational unit" });
     }
 
-    // Add OU to user and user to OU
-    user.organizationalUnits.push(ouId);
-    ou.users.push(userId);
-
+    // Add OU to user
+    user.organisationalUnits.push(ouId);
     await user.save();
-    await ou.save();
 
     const updatedUser = await User.findById(userId)
       .select("-password")
       .populate("divisions", "name description")
-      .populate("organizationalUnits", "name description");
+      .populate("organisationalUnits", "name description");
 
+    console.log(`✅ User ${user.email} assigned to OU ${ou.name}`);
     res.json({
       message: "User assigned to organizational unit successfully",
       user: updatedUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error assigning user to OU:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -246,8 +245,10 @@ router.delete("/users/:userId/ous/:ouId", auth, async (req, res) => {
 
     const { userId, ouId } = req.params;
 
+    console.log(`🔧 Unassigning user ${userId} from OU ${ouId}`);
+
     const user = await User.findById(userId);
-    const ou = await OrganizationalUnit.findById(ouId);
+    const ou = await OrganisationalUnit.findById(ouId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -257,31 +258,30 @@ router.delete("/users/:userId/ous/:ouId", auth, async (req, res) => {
       return res.status(404).json({ message: "Organizational unit not found" });
     }
 
-    // Remove OU from user and user from OU
-    user.organizationalUnits = user.organizationalUnits.filter(
+    // Remove OU from user
+    user.organisationalUnits = user.organisationalUnits.filter(
       (unit) => unit.toString() !== ouId
     );
-    ou.users = ou.users.filter((user) => user.toString() !== userId);
 
     await user.save();
-    await ou.save();
 
     const updatedUser = await User.findById(userId)
       .select("-password")
       .populate("divisions", "name description")
-      .populate("organizationalUnits", "name description");
+      .populate("organisationalUnits", "name description");
 
+    console.log(`✅ User ${user.email} unassigned from OU ${ou.name}`);
     res.json({
       message: "User unassigned from organizational unit successfully",
       user: updatedUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error unassigning user from OU:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Get all divisions for admin panel - FIXED: Remove populate for now
+// Get all divisions for admin panel
 router.get("/divisions", auth, async (req, res) => {
   try {
     console.log("GET /divisions - User making request:", req.user.email);
@@ -293,8 +293,10 @@ router.get("/divisions", auth, async (req, res) => {
     }
 
     console.log("Fetching divisions...");
-    // REMOVE the problematic populate for now
-    const divisions = await Division.find(); // Remove: .populate("users", "name email role")
+    const divisions = await Division.find().populate(
+      "organisationalUnit",
+      "name description"
+    );
 
     console.log("Divisions fetched successfully, count:", divisions.length);
     res.json(divisions);
@@ -304,7 +306,7 @@ router.get("/divisions", auth, async (req, res) => {
   }
 });
 
-// Get all organizational units for admin panel - FIXED: Remove populate for now
+// Get all organizational units for admin panel
 router.get("/ous", auth, async (req, res) => {
   try {
     console.log("GET /ous - User making request:", req.user.email);
@@ -316,8 +318,7 @@ router.get("/ous", auth, async (req, res) => {
     }
 
     console.log("Fetching organizational units...");
-    // REMOVE the problematic populate for now
-    const ous = await OrganizationalUnit.find(); // Remove: .populate("users", "name email role")
+    const ous = await OrganisationalUnit.find();
 
     console.log("OUs fetched successfully, count:", ous.length);
     res.json(ous);

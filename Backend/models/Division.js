@@ -1,3 +1,4 @@
+// backend/models/Division.js
 const mongoose = require("mongoose");
 
 const divisionSchema = new mongoose.Schema(
@@ -5,21 +6,21 @@ const divisionSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      trim: true,
+      unique: true,
     },
     description: {
       type: String,
       required: true,
     },
-    organizationalUnit: {
+    organisationalUnit: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "OrganizationalUnit",
+      ref: "OrganisationalUnit",
       required: true,
     },
-    users: [
+    credentials: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Credential",
       },
     ],
   },

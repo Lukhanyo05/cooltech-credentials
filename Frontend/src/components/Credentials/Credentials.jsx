@@ -16,14 +16,14 @@ const Credentials = () => {
   const [formData, setFormData] = useState({
     title: '',
     website: '',
-    username: '',
+    email: '', // Changed from username to email
     password: '',
     notes: ''
   });
   const [editFormData, setEditFormData] = useState({
     title: '',
     website: '',
-    username: '',
+    email: '', // Changed from username to email
     password: '',
     notes: ''
   });
@@ -43,7 +43,7 @@ const Credentials = () => {
             _id: '1',
             title: 'WordPress Admin',
             website: 'https://cooltech.com/wp-admin',
-            username: 'admin@cooltech.com',
+            email: 'admin@cooltech.com', // Changed from username to email
             password: 'supersecret123',
             notes: 'Main company website admin panel',
             division: divisionId
@@ -52,7 +52,7 @@ const Credentials = () => {
             _id: '2',
             title: 'Server SSH Access',
             website: 'ssh://server.cooltech.com',
-            username: 'ubuntu',
+            email: 'ubuntu@cooltech.com', // Changed from username to email
             password: 'serverpass123',
             notes: 'Production server SSH access',
             division: divisionId
@@ -61,7 +61,7 @@ const Credentials = () => {
             _id: '3',
             title: 'Database Admin',
             website: 'https://phpmyadmin.cooltech.com',
-            username: 'dbadmin',
+            email: 'dbadmin@cooltech.com', // Changed from username to email
             password: 'dbpassword123',
             notes: 'MySQL database administration',
             division: divisionId
@@ -87,7 +87,7 @@ const Credentials = () => {
       setCredentials(prev => [...prev, newCredential]);
       toast.success('Credential added successfully');
       setIsModalOpen(false);
-      setFormData({ title: '', website: '', username: '', password: '', notes: '' });
+      setFormData({ title: '', website: '', email: '', password: '', notes: '' }); // Updated reset
     } catch (err) {
       toast.error('Failed to add credential');
     }
@@ -106,7 +106,7 @@ const Credentials = () => {
       toast.success('Credential updated successfully');
       setIsEditModalOpen(false);
       setSelectedCredential(null);
-      setEditFormData({ title: '', website: '', username: '', password: '', notes: '' });
+      setEditFormData({ title: '', website: '', email: '', password: '', notes: '' }); // Updated reset
     } catch (err) {
       toast.error('Failed to update credential');
     }
@@ -134,7 +134,7 @@ const Credentials = () => {
     setEditFormData({
       title: credential.title,
       website: credential.website,
-      username: credential.username,
+      email: credential.email, // Changed from username to email
       password: credential.password,
       notes: credential.notes || ''
     });
@@ -207,7 +207,7 @@ const Credentials = () => {
                     Website
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Username
+                    Email {/* Changed from Username to Email */}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -235,7 +235,7 @@ const Credentials = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{credential.username}</div>
+                      <div className="text-sm text-gray-500">{credential.email}</div> {/* Changed from username to email */}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
                       <button 
@@ -313,16 +313,16 @@ const Credentials = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Username *
+                      Email * {/* Changed from Username to Email */}
                     </label>
                     <input
-                      type="text"
-                      name="username"
+                      type="email" // Changed to email type for validation
+                      name="email" // Changed from username to email
                       required
-                      value={formData.username}
+                      value={formData.email}
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="username or email"
+                      placeholder="user@example.com" // Updated placeholder
                     />
                   </div>
 
@@ -400,15 +400,15 @@ const Credentials = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label> {/* Changed from Username to Email */}
                   <div className="flex items-center space-x-2">
                     <div className="flex-1 border border-gray-300 rounded-md px-3 py-2 bg-gray-50">
-                      {selectedCredential.username}
+                      {selectedCredential.email} {/* Changed from username to email */}
                     </div>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(selectedCredential.username);
-                        toast.success('Username copied to clipboard!');
+                        navigator.clipboard.writeText(selectedCredential.email); // Changed from username to email
+                        toast.success('Email copied to clipboard!'); // Updated message
                       }}
                       className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
                     >
@@ -504,13 +504,13 @@ const Credentials = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Username *
+                      Email * {/* Changed from Username to Email */}
                     </label>
                     <input
-                      type="text"
-                      name="username"
+                      type="email" // Changed to email type for validation
+                      name="email" // Changed from username to email
                       required
-                      value={editFormData.username}
+                      value={editFormData.email}
                       onChange={handleEditChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />

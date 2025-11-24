@@ -1,176 +1,177 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const User = require("../models/User");
-const OrganizationalUnit = require("../models/OrganizationalUnit");
-const Division = require("../models/Division");
-require("dotenv").config();
 
-const seedDatabase = async () => {
+// Import models
+const User = require("./models/User");
+const Division = require("./models/Division");
+const OrganisationalUnit = require("./models/OrganisationalUnit");
+
+const seedData = async () => {
   try {
-    // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log("Connected to MongoDB");
+    console.log("🔗 Connecting to MongoDB...");
+
+    // Connect to database
+    await mongoose.connect("mongodb://localhost:27017/cooltech-credentials", {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("✅ Connected to MongoDB");
 
     // Clear existing data
+    console.log("🗑️ Clearing existing data...");
     await User.deleteMany({});
-    await OrganizationalUnit.deleteMany({});
     await Division.deleteMany({});
-    console.log("Cleared existing data");
+    await OrganisationalUnit.deleteMany({});
+    console.log("✅ Existing data cleared");
 
-    // Create Organizational Units
-    const organizationalUnits = await OrganizationalUnit.insertMany([
+    // Create Organisational Units
+    console.log("🏢 Creating organizational units...");
+    const organisationalUnits = await OrganisationalUnit.create([
       {
         name: "News Management",
-        description: "Handles all news-related content and publications",
+        description: "Handles news content and publications",
       },
       {
         name: "Software Reviews",
-        description: "Manages software review content and platforms",
+        description: "Software testing and review division",
       },
       {
         name: "Hardware Reviews",
-        description: "Handles hardware review content and testing",
+        description: "Hardware testing and review division",
       },
       {
         name: "Opinion Publishing",
-        description: "Manages opinion pieces and editorial content",
+        description: "Opinion pieces and editorial content",
       },
     ]);
-    console.log("Created Organizational Units");
+    console.log(
+      `✅ Created ${organisationalUnits.length} organisational units`
+    );
 
-    // Create Divisions for each OU
-    const divisions = await Division.insertMany([
-      // News Management Divisions
-      {
-        name: "Finance",
-        organizationalUnit: organizationalUnits[0]._id,
-        description: "Financial operations and accounting",
-      },
-      {
-        name: "IT",
-        organizationalUnit: organizationalUnits[0]._id,
-        description: "IT infrastructure and support",
-      },
-      {
-        name: "Writing",
-        organizationalUnit: organizationalUnits[0]._id,
-        description: "Content writing and editing",
-      },
-      {
-        name: "Social Media",
-        organizationalUnit: organizationalUnits[0]._id,
-        description: "Social media management",
-      },
+    // Extract the created OU IDs
+    const newsOU = organisationalUnits[0]._id;
+    const softwareOU = organisationalUnits[1]._id;
+    const hardwareOU = organisationalUnits[2]._id;
+    const opinionOU = organisationalUnits[3]._id;
 
-      // Software Reviews Divisions
+    // Create Divisions
+    console.log("🏭 Creating divisions...");
+    const divisions = await Division.create([
       {
-        name: "Development",
-        organizationalUnit: organizationalUnits[1]._id,
-        description: "Software development and testing",
+        name: "IT Division",
+        description: "Technical infrastructure and systems",
+        organisationalUnit: newsOU,
       },
       {
-        name: "QA",
-        organizationalUnit: organizationalUnits[1]._id,
-        description: "Quality assurance and testing",
+        name: "Finance Division",
+        description: "Financial systems and accounts",
+        organisationalUnit: newsOU,
       },
       {
-        name: "Content",
-        organizationalUnit: organizationalUnits[1]._id,
-        description: "Content creation and review",
-      },
-
-      // Hardware Reviews Divisions
-      {
-        name: "Testing Lab",
-        organizationalUnit: organizationalUnits[2]._id,
-        description: "Hardware testing and analysis",
+        name: "HR Division",
+        description: "Human resources systems",
+        organisationalUnit: softwareOU,
       },
       {
-        name: "Review Team",
-        organizationalUnit: organizationalUnits[2]._id,
-        description: "Hardware review writing",
+        name: "Marketing Division",
+        description: "Marketing and social media accounts",
+        organisationalUnit: softwareOU,
       },
       {
-        name: "Technical",
-        organizationalUnit: organizationalUnits[2]._id,
-        description: "Technical analysis and benchmarking",
-      },
-
-      // Opinion Publishing Divisions
-      {
-        name: "Editorial",
-        organizationalUnit: organizationalUnits[3]._id,
-        description: "Editorial team and content review",
+        name: "Development Division",
+        description: "Software development teams",
+        organisationalUnit: hardwareOU,
       },
       {
-        name: "Publishing",
-        organizationalUnit: organizationalUnits[3]._id,
-        description: "Content publishing and distribution",
-      },
-      {
-        name: "Outreach",
-        organizationalUnit: organizationalUnits[3]._id,
-        description: "Community outreach and engagement",
+        name: "Content Division",
+        description: "Content creation and management",
+        organisationalUnit: opinionOU,
       },
     ]);
-    console.log("Created Divisions");
+    console.log(`✅ Created ${divisions.length} divisions`);
 
-    // Create users with hashed passwords
-    const hashedPassword123 = await bcrypt.hash("password123", 12);
-    const hashedSupremeLeader = await bcrypt.hash("SupremeLeader123", 12);
+    // Create test users using save() to trigger the pre-save hook
+    console.log("👥 Creating users...");
 
-    const users = await User.insertMany([
-      {
-        email: "normal.user@cooltech.com",
-        password: hashedPassword123,
-        role: "user",
-        organizationalUnits: [organizationalUnits[0]._id],
-        divisions: [divisions[0]._id, divisions[1]._id], // Finance & IT divisions
-      },
-      {
-        email: "manager.user@cooltech.com",
-        password: hashedPassword123,
-        role: "manager",
-        organizationalUnits: [
-          organizationalUnits[1]._id,
-          organizationalUnits[2]._id,
-        ],
-        divisions: [divisions[4]._id, divisions[7]._id], // Development & Testing Lab
-      },
-      {
-        email: "admin.user@cooltech.com",
-        password: hashedPassword123,
-        role: "admin",
-        organizationalUnits: organizationalUnits.map((ou) => ou._id), // All OUs
-        divisions: divisions.map((div) => div._id), // All divisions
-      },
-      {
-        email: "alex@cooltech.io",
-        password: hashedSupremeLeader,
-        role: "admin",
-        organizationalUnits: organizationalUnits.map((ou) => ou._id), // All OUs
-        divisions: divisions.map((div) => div._id), // All divisions
-      },
-    ]);
-    console.log("Created Users");
+    const user1 = new User({
+      username: "normaluser",
+      email: "normal.user@cooltech.com",
+      password: "password123", // Plain text - will be hashed by pre-save hook
+      role: "user",
+      divisions: [divisions[0]._id, divisions[1]._id],
+      organisationalUnits: [newsOU],
+    });
 
-    console.log("\n=== Database Seeding Completed ===");
-    console.log("Created:");
-    console.log(`- ${organizationalUnits.length} Organizational Units`);
-    console.log(`- ${divisions.length} Divisions`);
-    console.log(`- ${users.length} Users`);
+    const user2 = new User({
+      username: "managementuser",
+      email: "manager.user@cooltech.com",
+      password: "password123", // Plain text - will be hashed by pre-save hook
+      role: "management",
+      divisions: [divisions[2]._id, divisions[3]._id],
+      organisationalUnits: [softwareOU],
+    });
 
-    console.log("\nLogin Credentials:");
-    console.log("👤 Normal User: normal.user@cooltech.com / password123");
-    console.log("👨‍💼 Manager User: manager.user@cooltech.com / password123");
-    console.log("👑 Admin User: admin.user@cooltech.com / password123");
-    console.log("👑 Alex Admin: alex@cooltech.io / SupremeLeader123");
+    const user3 = new User({
+      username: "adminuser",
+      email: "admin.user@cooltech.com",
+      password: "password123", // Plain text - will be hashed by pre-save hook
+      role: "admin",
+      divisions: divisions.map((div) => div._id),
+      organisationalUnits: organisationalUnits.map((ou) => ou._id),
+    });
+
+    // Save each user individually to trigger the pre-save hook
+    await user1.save();
+    await user2.save();
+    await user3.save();
+
+    console.log(`✅ Created 3 users`);
+
+    // Verify the passwords were stored correctly
+    console.log("\n🔐 Verifying password hashing...");
+    const testUsers = await User.find({});
+    for (let user of testUsers) {
+      const isPasswordCorrect = await bcrypt.compare(
+        "password123",
+        user.password
+      );
+      console.log(
+        `   ${user.email}: Password verification ${
+          isPasswordCorrect ? "✅ SUCCESS" : "❌ FAILED"
+        }`
+      );
+      console.log(`   Password hash: ${user.password.substring(0, 20)}...`);
+    }
+
+    console.log("\n🎉 === SAMPLE DATA CREATED SUCCESSFULLY! ===");
+    console.log("\n📋 Test Users (password: password123):");
+    console.log("   👤 Normal User: normal.user@cooltech.com (role: user)");
+    console.log(
+      "   👔 Management User: manager.user@cooltech.com (role: management)"
+    );
+    console.log("   🔧 Admin User: admin.user@cooltech.com (role: admin)");
+
+    console.log("\n🏢 Organisational Units:");
+    organisationalUnits.forEach((ou) => {
+      console.log(`   • ${ou.name}`);
+    });
+
+    console.log("\n🏭 Divisions:");
+    divisions.forEach((div) => {
+      const ouName =
+        organisationalUnits.find((ou) => ou._id.equals(div.organisationalUnit))
+          ?.name || "Unknown OU";
+      console.log(`   • ${div.name} (${ouName})`);
+    });
   } catch (error) {
-    console.error("Seeding error:", error);
+    console.error("\n❌ SEEDING FAILED:", error.message);
+    console.error("Error details:", error);
   } finally {
     await mongoose.connection.close();
-    console.log("\nDatabase connection closed");
+    console.log("\n🔌 Database connection closed");
+    process.exit(0);
   }
 };
 
-seedDatabase();
+// Run the seed function
+seedData();

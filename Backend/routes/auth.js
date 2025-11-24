@@ -1,116 +1,195 @@
+// backend/routes/auth.js
 const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const { check, validationResult } = require("express-validator");
 
-// Register user
-router.post("/register", async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-
-    // Check if user exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    // Create new user
-    user = new User({
-      name,
-      email,
-      password,
-      role: "user", // Default role
-    });
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-
-    await user.save();
-
-    // Create JWT token - SIMPLIFIED PAYLOAD
-    const payload = {
-      id: user.id, // Direct ID instead of nested object
-    };
-
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET || "fallback_secret",
-      { expiresIn: "24h" },
-      (err, token) => {
-        if (err) throw err;
-        res.json({
-          token,
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          },
-        });
+// Register new user
+router.post(
+  "/register",
+  [
+    check(
+      "name",
+      "Name is required and must be at least 3 characters"
+    ).isLength({ min: 3 }),
+    check("email", "Please include a valid email").isEmail(),
+    check("password", "Password must be at least 6 characters").isLength({
+      min: 6,
+    }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-    );
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+
+      const { name, email, password } = req.body;
+      console.log(`🔧 Register attempt for: ${email}`);
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ message: "User already exists with this email" });
+      }
+
+      // Create new user (default role is 'user')
+      const user = new User({
+        name,
+        email,
+        password, // Will be hashed by the pre-save middleware
+        role: "user", // Default role
+      });
+
+      await user.save();
+      console.log(`✅ User registered successfully: ${email}`);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+        },
+        process.env.JWT_SECRET || "fallback_secret_key",
+        { expiresIn: "7d" }
+      );
+
+      // Return user data without password
+      const userResponse = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        divisions: user.divisions,
+        organisationalUnits: user.organisationalUnits,
+      };
+
+      res.status(201).json({
+        message: "User registered successfully",
+        token,
+        user: userResponse,
+      });
+    } catch (error) {
+      console.error("❌ Registration error:", error);
+      res.status(500).json({
+        message: "Server error during registration",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 // Login user
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(`🔑 Login attempt for: ${email}`);
 
-    // Check if user exists
-    let user = await User.findOne({ email });
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
+    // Find user and populate divisions/OU
+    const user = await User.findOne({ email })
+      .populate("divisions", "name description")
+      .populate("organisationalUnits", "name description");
+
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log(`❌ User not found: ${email}`);
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+    console.log(`🔑 User found: ${user.email}, checking password...`);
+
+    // Use the corrected password comparison
+    const isPasswordValid = await user.correctPassword(password);
+
+    if (!isPasswordValid) {
+      console.log(`❌ Invalid password for: ${email}`);
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
     }
 
-    // Create JWT token - SIMPLIFIED PAYLOAD
-    const payload = {
-      id: user.id, // Direct ID instead of nested object
+    console.log(`✅ Login successful for: ${user.email}`);
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET || "fallback_secret_key",
+      { expiresIn: "7d" }
+    );
+
+    // Return user data without password
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      divisions: user.divisions,
+      organisationalUnits: user.organisationalUnits,
     };
 
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET || "fallback_secret",
-      { expiresIn: "24h" },
-      (err, token) => {
-        if (err) throw err;
-        res.json({
-          token,
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          },
-        });
-      }
-    );
+    res.json({
+      message: "Login successful",
+      token,
+      user: userResponse,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Login error:", error);
+    res.status(500).json({
+      message: "Server error during login",
+      error: error.message,
+    });
   }
 });
 
 // Get current user
 router.get("/me", async (req, res) => {
   try {
-    // This would require auth middleware, but keeping it simple for now
-    res.json({ message: "Get current user endpoint" });
+    // This would typically use auth middleware
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "fallback_secret_key"
+    );
+    const user = await User.findById(decoded.id)
+      .select("-password")
+      .populate("divisions", "name description")
+      .populate("organisationalUnits", "name description");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Get user error:", error);
+    res.status(401).json({ message: "Invalid token" });
   }
+});
+
+// Test endpoint
+router.get("/test", (req, res) => {
+  res.json({ message: "Auth route is working!" });
 });
 
 module.exports = router;

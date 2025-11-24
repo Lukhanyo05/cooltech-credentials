@@ -5,7 +5,7 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
   const [formData, setFormData] = useState({
     title: '',
     website: '',
-    username: '',
+    email: '', // Changed from username to email
     password: '',
     notes: ''
   });
@@ -23,7 +23,7 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
         console.log('Adding credential:', { ...formData, division: divisionId });
         onCredentialAdded();
         onClose();
-        setFormData({ title: '', website: '', username: '', password: '', notes: '' });
+        setFormData({ title: '', website: '', email: '', password: '', notes: '' }); // Updated reset
         setLoading(false);
       }, 1000);
       
@@ -46,7 +46,7 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
   };
 
   const handleClose = () => {
-    setFormData({ title: '', website: '', username: '', password: '', notes: '' });
+    setFormData({ title: '', website: '', email: '', password: '', notes: '' }); // Updated reset
     setError('');
     onClose();
   };
@@ -98,16 +98,16 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username *
+                  Email * {/* Changed from Username to Email */}
                 </label>
                 <input
-                  type="text"
-                  name="username"
+                  type="email" // Changed to email type for validation
+                  name="email" // Changed from username to email
                   required
-                  value={formData.username}
+                  value={formData.email}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="username or email"
+                  placeholder="user@example.com" // Updated placeholder
                 />
               </div>
 

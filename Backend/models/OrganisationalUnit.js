@@ -1,20 +1,21 @@
+// backend/models/OrganisationalUnit.js
 const mongoose = require("mongoose");
 
-const organizationalUnitSchema = new mongoose.Schema(
+const organisationalUnitSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
-      trim: true,
+      unique: true,
     },
     description: {
       type: String,
       required: true,
     },
-    users: [
+    divisions: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Division",
       },
     ],
   },
@@ -23,4 +24,4 @@ const organizationalUnitSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("OrganizationalUnit", organizationalUnitSchema);
+module.exports = mongoose.model("OrganisationalUnit", organisationalUnitSchema);

@@ -3,6 +3,11 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: true,
+      minlength: 3,
+    },
     email: {
       type: String,
       required: true,
@@ -19,16 +24,16 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "manager", "admin"],
       default: "user",
     },
-    organizationalUnits: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "OrganizationalUnit",
-      },
-    ],
     divisions: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Division",
+      },
+    ],
+    organisationalUnits: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "OrganisationalUnit",
       },
     ],
   },
@@ -43,11 +48,8 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.methods.correctPassword = async function (
-  candidatePassword,
-  userPassword
-) {
-  return await bcrypt.compare(candidatePassword, userPassword);
+userSchema.methods.correctPassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 module.exports = mongoose.model("User", userSchema);

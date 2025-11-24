@@ -1,3 +1,4 @@
+// backend/server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -9,32 +10,39 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// =============================================================================
+// MAIN APPLICATION ROUTES
+// =============================================================================
+
 app.use("/api/auth", require("./routes/auth"));
+app.use("/api/admin", require("./routes/userManagement"));
 app.use("/api/credentials", require("./routes/credentials"));
-app.use("/api/admin", require("./routes/userManagement")); // Only this one for admin
+app.use("/api/divisions", require("./routes/divisions"));
 
-// Basic route for testing
-app.get("/api/test", (req, res) => {
-  res.json({ message: "Backend is working!" });
-});
+// =============================================================================
+// DATABASE CONNECTION & SERVER STARTUP
+// =============================================================================
 
-// MongoDB connection
-mongoose.connect(
-  process.env.MONGODB_URI || "mongodb://localhost:27017/cooltech-credentials",
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  }
-);
-
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", () => {
-  console.log("Connected to MongoDB");
-});
+// Database connection
+mongoose
+  .connect(
+    process.env.MONGODB_URI || "mongodb://localhost:27017/cooltech-credentials",
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    }
+  )
+  .then(() => {
+    console.log("✅ MongoDB connected successfully");
+  })
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Main application endpoints:`);
+  console.log(`   - Auth:        http://localhost:${PORT}/api/auth`);
+  console.log(`   - Admin:       http://localhost:${PORT}/api/admin`);
+  console.log(`   - Credentials: http://localhost:${PORT}/api/credentials`);
+  console.log(`   - Divisions:   http://localhost:${PORT}/api/divisions`);
 });

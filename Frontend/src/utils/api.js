@@ -1,70 +1,42 @@
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+// frontend/src/utils/api.js
+import axios from "axios";
 
-const api = {
-  // Auth endpoints
-  login: (credentials) =>
-    fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
-    }).then(handleResponse),
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL:
+    process.env.NODE_ENV === "production"
+      ? "https://your-production-backend.herokuapp.com/api"
+      : "http://localhost:5000/api",
+  timeout: 10000,
+});
 
-  register: (userData) =>
-    fetch(`${API_URL}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    }).then(handleResponse),
-
-  // Credential endpoints
-  getCredentials: (token) =>
-    fetch(`${API_URL}/credentials`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(handleResponse),
-
-  createCredential: (credential, token) =>
-    fetch(`${API_URL}/credentials`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(credential),
-    }).then(handleResponse),
-
-  updateCredential: (id, credential, token) =>
-    fetch(`${API_URL}/credentials/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(credential),
-    }).then(handleResponse),
-
-  // Admin endpoints
-  getUsers: (token) =>
-    fetch(`${API_URL}/admin/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(handleResponse),
-
-  updateUser: (id, userData, token) =>
-    fetch(`${API_URL}/admin/users/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(userData),
-    }).then(handleResponse),
-};
-
-const handleResponse = async (response) => {
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return data;
-};
+);
 
+// Response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Export the configured axios instance
 export default api;

@@ -53,13 +53,30 @@ const Dashboard = () => {
 
   const handleAddCredential = async (credentialData) => {
     try {
-      console.log('🔧 Dashboard - Adding credential:', credentialData);
-      await credentialsService.createCredential(credentialData);
+      console.log('🔧 Dashboard - RAW credential data received:', credentialData);
+      
+      // CORRECTED: Backend expects 'division' not 'divisionId'
+      const dataToSend = {
+        title: credentialData.title,
+        username: credentialData.username,
+        password: credentialData.password,
+        website: credentialData.website || '',
+        description: credentialData.description || '',
+        division: credentialData.divisionId // FIXED: divisionId → division
+      };
+
+      console.log('🔧 Dashboard - Data being sent to backend:', JSON.stringify(dataToSend, null, 2));
+      
+      await credentialsService.createCredential(dataToSend);
       toast.success('Credential added successfully');
       setShowAddModal(false);
       await loadUserData(); // Reload data
     } catch (error) {
-      console.error('🔧 Dashboard - Error adding credential:', error);
+      console.error('🔧 Dashboard - Full error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
       toast.error('Failed to add credential: ' + (error.response?.data?.message || error.message));
     }
   };
@@ -259,15 +276,12 @@ const CredentialRow = ({ credential, user, onUpdate, onDelete }) => {
     title: credential.title,
     website: credential.website,
     username: credential.username,
-    password: credential.password, // Admin can see actual password
+    password: credential.password,
     description: credential.description
   });
 
   const canEdit = user.role === 'admin' || user.role === 'manager' || credential.createdBy?._id === user._id;
   const canDelete = user.role === 'admin' || credential.createdBy?._id === user._id;
-  
-  // Check if password is masked (non-admin users)
-  const isPasswordMasked = credential.password === '••••••••';
   
   // Show password field differently based on user role
   const displayPassword = user.role === 'admin' ? credential.password : '••••••••';
@@ -406,12 +420,26 @@ const AddCredentialModal = ({ division, onClose, onSubmit }) => {
     username: '',
     password: '',
     description: '',
-    division: division._id
+    divisionId: division._id // Keep as divisionId for internal state
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    setLoading(true);
+
+    try {
+      console.log('🔧 AddCredentialModal - Submitting data:', formData);
+      
+      // Send the form data - handleAddCredential will convert divisionId → division
+      await onSubmit(formData);
+      
+    } catch (error) {
+      // Error is handled in the parent component
+      console.error('🔧 AddCredentialModal - Submit error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -488,19 +516,27 @@ const AddCredentialModal = ({ division, onClose, onSubmit }) => {
                 placeholder="Optional description..."
               />
             </div>
+            
+            {/* Debug info - shows what's being sent to backend */}
+            <div className="bg-gray-100 p-2 rounded text-xs">
+              <p><strong>Debug Info:</strong> divisionId = {formData.divisionId}</p>
+            </div>
+            
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                disabled={loading}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50"
               >
-                Add Credential
+                {loading ? 'Adding...' : 'Add Credential'}
               </button>
             </div>
           </form>

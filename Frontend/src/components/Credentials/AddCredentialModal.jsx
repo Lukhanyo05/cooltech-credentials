@@ -5,9 +5,9 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
   const [formData, setFormData] = useState({
     title: '',
     website: '',
-    email: '', // Changed from username to email
+    username: '', // CHANGED BACK: Backend expects 'username' not 'email'
     password: '',
-    notes: ''
+    description: '' // CHANGED: Backend expects 'description' not 'notes'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,22 +18,26 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
     setError('');
 
     try {
-      // For demo - simulate API call
-      setTimeout(() => {
-        console.log('Adding credential:', { ...formData, division: divisionId });
-        onCredentialAdded();
-        onClose();
-        setFormData({ title: '', website: '', email: '', password: '', notes: '' }); // Updated reset
-        setLoading(false);
-      }, 1000);
+      console.log('🔧 AddCredentialModal - Sending data:', {
+        ...formData,
+        divisionId: divisionId // CHANGED: Backend expects 'divisionId' not 'division'
+      });
+
+      // USE REAL API CALL - REMOVE DEMO CODE
+      await credentialsService.createCredential({
+        ...formData,
+        divisionId: divisionId // CHANGED: Send 'divisionId' not 'division'
+      });
       
-      // In real app, use this:
-      // await credentialsService.addCredential({
-      //   ...formData,
-      //   division: divisionId
-      // });
+      console.log('✅ Credential added successfully');
+      onCredentialAdded();
+      onClose();
+      setFormData({ title: '', website: '', username: '', password: '', description: '' });
+      
     } catch (err) {
+      console.error('❌ AddCredentialModal - Error:', err);
       setError(err.response?.data?.message || 'Failed to add credential');
+    } finally {
       setLoading(false);
     }
   };
@@ -46,7 +50,7 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
   };
 
   const handleClose = () => {
-    setFormData({ title: '', website: '', email: '', password: '', notes: '' }); // Updated reset
+    setFormData({ title: '', website: '', username: '', password: '', description: '' });
     setError('');
     onClose();
   };
@@ -98,16 +102,16 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email * {/* Changed from Username to Email */}
+                  Username * {/* CHANGED BACK: Backend expects 'username' */}
                 </label>
                 <input
-                  type="email" // Changed to email type for validation
-                  name="email" // Changed from username to email
+                  type="text" // CHANGED BACK: from 'email' to 'text'
+                  name="username" // CHANGED BACK: from 'email' to 'username'
                   required
-                  value={formData.email}
+                  value={formData.username}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="user@example.com" // Updated placeholder
+                  placeholder="admin_user" // Updated placeholder
                 />
               </div>
 
@@ -128,12 +132,12 @@ const AddCredentialModal = ({ isOpen, onClose, divisionId, onCredentialAdded }) 
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
+                  Description {/* CHANGED: Backend expects 'description' */}
                 </label>
                 <textarea
-                  name="notes"
+                  name="description" // CHANGED: from 'notes' to 'description'
                   rows="3"
-                  value={formData.notes}
+                  value={formData.description}
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Additional information about this credential..."

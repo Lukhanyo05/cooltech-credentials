@@ -1,4 +1,3 @@
-// backend/models/OrganisationalUnit.js
 const mongoose = require("mongoose");
 
 const organisationalUnitSchema = new mongoose.Schema(
@@ -6,16 +5,16 @@ const organisationalUnitSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
+      trim: true,
     },
     description: {
       type: String,
-      required: true,
+      trim: true,
     },
-    divisions: [
+    users: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Division",
+        ref: "User",
       },
     ],
   },

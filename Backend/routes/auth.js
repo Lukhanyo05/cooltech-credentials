@@ -2,16 +2,22 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+const Division = require("../models/Division");
+const OU = require("../models/OrganisationalUnit");
 const jwt = require("jsonwebtoken");
 const { check, validationResult } = require("express-validator");
 
-// Register new user
+// Register new user - UPDATED WITH AUTO-ASSIGNMENT TO DIVISIONS
 router.post(
   "/register",
   [
     check(
       "name",
       "Name is required and must be at least 3 characters"
+    ).isLength({ min: 3 }),
+    check(
+      "username",
+      "Username is required and must be at least 3 characters"
     ).isLength({ min: 3 }),
     check("email", "Please include a valid email").isEmail(),
     check("password", "Password must be at least 6 characters").isLength({
@@ -25,26 +31,57 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { name, email, password } = req.body;
-      console.log(`🔧 Register attempt for: ${email}`);
+      const { name, username, email, password } = req.body;
+      console.log(`🔧 Register attempt for: ${email}, username: ${username}`);
 
-      // Check if user already exists
-      const existingUser = await User.findOne({ email });
+      // Check if user already exists by email OR username
+      const existingUser = await User.findOne({
+        $or: [{ email: email }, { username: username }],
+      });
+
       if (existingUser) {
-        return res
-          .status(400)
-          .json({ message: "User already exists with this email" });
+        return res.status(400).json({
+          message: "User already exists with this email or username",
+        });
       }
 
-      // Create new user (default role is 'user')
+      // AUTO-ASSIGNMENT: Find default division and OU for new users
+      const defaultDivision = await Division.findOne({
+        name: "Content Division",
+      });
+      const defaultOU = await OU.findOne({ name: "Opinion Publishing" });
+
+      console.log(
+        `🔧 Auto-assignment - Division: ${defaultDivision?.name}, OU: ${defaultOU?.name}`
+      );
+
+      // Create new user with default assignments
       const user = new User({
         name,
+        username,
         email,
-        password, // Will be hashed by the pre-save middleware
-        role: "user", // Default role
+        password,
+        role: "user",
+        divisions: defaultDivision ? [defaultDivision._id] : [],
+        organisationalUnits: defaultOU ? [defaultOU._id] : [],
       });
 
       await user.save();
+
+      // Update division with new user
+      if (defaultDivision) {
+        defaultDivision.users.push(user._id);
+        await defaultDivision.save();
+        console.log(`✅ User assigned to division: ${defaultDivision.name}`);
+      }
+
+      // Update OU with new user
+      if (defaultOU) {
+        defaultOU.users.push(user._id);
+        await defaultOU.save();
+        console.log(`✅ User assigned to OU: ${defaultOU.name}`);
+      }
+
       console.log(`✅ User registered successfully: ${email}`);
 
       // Generate JWT token
@@ -52,20 +89,27 @@ router.post(
         {
           id: user._id,
           email: user.email,
+          username: user.username,
           role: user.role,
         },
         process.env.JWT_SECRET || "fallback_secret_key",
         { expiresIn: "7d" }
       );
 
-      // Return user data without password
+      // Return populated user data (including divisions and OUs)
+      const populatedUser = await User.findById(user._id)
+        .select("-password")
+        .populate("divisions", "name description")
+        .populate("organisationalUnits", "name description");
+
       const userResponse = {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        divisions: user.divisions,
-        organisationalUnits: user.organisationalUnits,
+        _id: populatedUser._id,
+        name: populatedUser.name,
+        username: populatedUser.username,
+        email: populatedUser.email,
+        role: populatedUser.role,
+        divisions: populatedUser.divisions,
+        organisationalUnits: populatedUser.organisationalUnits,
       };
 
       res.status(201).json({
@@ -83,40 +127,52 @@ router.post(
   }
 );
 
-// Login user
+// Login user - UPDATED TO ACCEPT EMAIL OR USERNAME
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    console.log(`🔑 Login attempt for: ${email}`);
+    // ACCEPT BOTH 'login' AND 'email' FOR COMPATIBILITY
+    const loginInput = req.body.login || req.body.email;
+    const password = req.body.password;
+
+    console.log(`🔑 Login attempt for: ${loginInput}`);
+    console.log(`🔑 Request body:`, req.body);
 
     // Validate input
-    if (!email || !password) {
+    if (!loginInput || !password) {
       return res.status(400).json({
-        message: "Email and password are required",
+        message: "Email/Username and password are required",
       });
     }
 
-    // Find user and populate divisions/OU
-    const user = await User.findOne({ email })
+    // Determine if login is email or username
+    const isEmail = loginInput.includes("@");
+    const query = isEmail ? { email: loginInput } : { username: loginInput };
+
+    console.log(`🔑 Login type: ${isEmail ? "Email" : "Username"}`);
+
+    // Find user by email OR username and populate divisions/OU
+    const user = await User.findOne(query)
       .populate("divisions", "name description")
       .populate("organisationalUnits", "name description");
 
     if (!user) {
-      console.log(`❌ User not found: ${email}`);
+      console.log(`❌ User not found: ${loginInput}`);
       return res.status(401).json({
-        message: "Invalid email or password",
+        message: "Invalid email/username or password",
       });
     }
 
-    console.log(`🔑 User found: ${user.email}, checking password...`);
+    console.log(
+      `🔑 User found: ${user.email} (username: ${user.username}), checking password...`
+    );
 
     // Use the corrected password comparison
     const isPasswordValid = await user.correctPassword(password);
 
     if (!isPasswordValid) {
-      console.log(`❌ Invalid password for: ${email}`);
+      console.log(`❌ Invalid password for: ${loginInput}`);
       return res.status(401).json({
-        message: "Invalid email or password",
+        message: "Invalid email/username or password",
       });
     }
 
@@ -127,6 +183,7 @@ router.post("/login", async (req, res) => {
       {
         id: user._id,
         email: user.email,
+        username: user.username,
         role: user.role,
       },
       process.env.JWT_SECRET || "fallback_secret_key",
@@ -137,6 +194,7 @@ router.post("/login", async (req, res) => {
     const userResponse = {
       _id: user._id,
       name: user.name,
+      username: user.username,
       email: user.email,
       role: user.role,
       divisions: user.divisions,
@@ -160,7 +218,6 @@ router.post("/login", async (req, res) => {
 // Get current user
 router.get("/me", async (req, res) => {
   try {
-    // This would typically use auth middleware
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {

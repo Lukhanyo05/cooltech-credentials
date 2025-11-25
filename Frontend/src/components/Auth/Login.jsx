@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    email: '',
+    login: '', // CHANGED from 'email' to 'login'
     password: ''
   });
   const [loading, setLoading] = useState(false);
@@ -18,17 +18,19 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login',formData);
+      console.log('🔑 Sending login request with:', formData); // Debug log
       
-      console.log('🔑 Login response:', response.data); // Debug log
+      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      
+      console.log('🔑 Login response:', response.data);
       
       if (response.data.token) {
         // Store token and user data in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         
-        console.log('🔑 Token stored in localStorage:', !!localStorage.getItem('token')); // Debug log
-        console.log('🔑 User data stored:', localStorage.getItem('user')); // Debug log
+        console.log('🔑 Token stored in localStorage:', !!localStorage.getItem('token'));
+        console.log('🔑 User data stored:', localStorage.getItem('user'));
         
         // Update auth context
         login(response.data.user, response.data.token);
@@ -36,7 +38,7 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error('🔑 Login error:', err); // Debug log
+      console.error('🔑 Login error:', err);
       toast.error(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -50,8 +52,8 @@ const Login = () => {
     });
   };
 
-  const handleDemoLogin = (email, password) => {
-    setFormData({ email, password });
+  const handleDemoLogin = (login, password) => { // CHANGED parameter from 'email' to 'login'
+    setFormData({ login, password }); // CHANGED from 'email' to 'login'
   };
 
   return (
@@ -73,12 +75,12 @@ const Login = () => {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <input
-                name="email"
-                type="email"
+                name="login" // CHANGED from 'email' to 'login'
+                type="text" // CHANGED from 'email' to 'text'
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={formData.email}
+                placeholder="Email or Username" // CHANGED placeholder
+                value={formData.login}
                 onChange={handleChange}
               />
             </div>
@@ -95,6 +97,10 @@ const Login = () => {
             </div>
           </div>
 
+          <div className="text-xs text-gray-500 text-center">
+            <p>You can login with your email address or username</p>
+          </div>
+
           <div>
             <button
               type="submit"
@@ -106,28 +112,61 @@ const Login = () => {
           </div>
         </form>
 
-        {/* Demo credentials */}
+        {/* Demo credentials - UPDATED to show both email and username options */}
         <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <h3 className="text-sm font-medium text-yellow-800 mb-2">Demo Credentials:</h3>
           <div className="space-y-2">
-            <button
-              onClick={() => handleDemoLogin('admin.user@cooltech.com', 'password123')}
-              className="w-full text-left text-xs text-yellow-700 hover:text-yellow-800 p-2 hover:bg-yellow-100 rounded"
-            >
-              <strong>Admin:</strong> admin.user@cooltech.com / password123
-            </button>
-            <button
-              onClick={() => handleDemoLogin('manager.user@cooltech.com', 'password123')}
-              className="w-full text-left text-xs text-yellow-700 hover:text-yellow-800 p-2 hover:bg-yellow-100 rounded"
-            >
-              <strong>Manager:</strong> manager.user@cooltech.com / password123
-            </button>
-            <button
-              onClick={() => handleDemoLogin('normal.user@cooltech.com', 'password123')}
-              className="w-full text-left text-xs text-yellow-700 hover:text-yellow-800 p-2 hover:bg-yellow-100 rounded"
-            >
-              <strong>User:</strong> normal.user@cooltech.com / password123
-            </button>
+            <div className="text-xs text-yellow-700">
+              <strong>Admin:</strong> 
+              <button
+                onClick={() => handleDemoLogin('admin.user@cooltech.com', 'password123')}
+                className="ml-1 underline hover:text-yellow-800"
+              >
+                admin.user@cooltech.com
+              </button>
+              {' or '}
+              <button
+                onClick={() => handleDemoLogin('admin.user', 'password123')}
+                className="underline hover:text-yellow-800"
+              >
+                admin.user
+              </button>
+              {' / password123'}
+            </div>
+            <div className="text-xs text-yellow-700">
+              <strong>Manager:</strong> 
+              <button
+                onClick={() => handleDemoLogin('manager.user@cooltech.com', 'password123')}
+                className="ml-1 underline hover:text-yellow-800"
+              >
+                manager.user@cooltech.com
+              </button>
+              {' or '}
+              <button
+                onClick={() => handleDemoLogin('manager.user', 'password123')}
+                className="underline hover:text-yellow-800"
+              >
+                manager.user
+              </button>
+              {' / password123'}
+            </div>
+            <div className="text-xs text-yellow-700">
+              <strong>User:</strong> 
+              <button
+                onClick={() => handleDemoLogin('normal.user@cooltech.com', 'password123')}
+                className="ml-1 underline hover:text-yellow-800"
+              >
+                normal.user@cooltech.com
+              </button>
+              {' or '}
+              <button
+                onClick={() => handleDemoLogin('normal.user', 'password123')}
+                className="underline hover:text-yellow-800"
+              >
+                normal.user
+              </button>
+              {' / password123'}
+            </div>
           </div>
         </div>
       </div>

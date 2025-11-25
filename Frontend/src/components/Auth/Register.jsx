@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
+    username: '', // Added username field
     email: '',
     password: '',
     confirmPassword: ''
@@ -19,8 +20,15 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     
+    // Validation
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.username.length < 3) {
+      toast.error('Username must be at least 3 characters');
       setLoading(false);
       return;
     }
@@ -28,18 +36,19 @@ const Register = () => {
     try {
       const response = await axios.post('http://localhost:5000/api/auth/register', {
         name: formData.name,
+        username: formData.username, // Include username in the request
         email: formData.email,
         password: formData.password
       });
       
-      console.log('🔑 Register response:', response.data); // Debug log
+      console.log('🔑 Register response:', response.data);
       
       if (response.data.token) {
         // Store token and user data in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         
-        console.log('🔑 Token stored in localStorage:', !!localStorage.getItem('token')); // Debug log
+        console.log('🔑 Token stored in localStorage:', !!localStorage.getItem('token'));
         
         // Update auth context
         login(response.data.user, response.data.token);
@@ -47,8 +56,11 @@ const Register = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error('🔑 Register error:', err); // Debug log
-      toast.error(err.response?.data?.message || 'Registration failed');
+      console.error('🔑 Register error:', err);
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.errors?.[0]?.msg || 
+                          'Registration failed';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -87,6 +99,19 @@ const Register = () => {
                 placeholder="Full Name"
                 value={formData.name}
                 onChange={handleChange}
+                minLength="3"
+              />
+            </div>
+            <div>
+              <input
+                name="username"
+                type="text"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Username"
+                value={formData.username}
+                onChange={handleChange}
+                minLength="3"
               />
             </div>
             <div>
@@ -109,6 +134,7 @@ const Register = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
+                minLength="6"
               />
             </div>
             <div>
@@ -120,8 +146,14 @@ const Register = () => {
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                minLength="6"
               />
             </div>
+          </div>
+
+          <div className="text-xs text-gray-500">
+            <p>• Username must be at least 3 characters</p>
+            <p>• Password must be at least 6 characters</p>
           </div>
 
           <div>

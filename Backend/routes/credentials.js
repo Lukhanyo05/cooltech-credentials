@@ -58,8 +58,9 @@ router.get("/division/:divisionId", auth, async (req, res) => {
   try {
     const { divisionId } = req.params;
 
-    // Check if user has access to this division
-    if (!req.user.divisions.includes(divisionId) && req.user.role !== "admin") {
+    // FIXED: Check if user has access to this division
+    const userDivisionIds = req.user.divisions.map((div) => div._id.toString());
+    if (!userDivisionIds.includes(divisionId) && req.user.role !== "admin") {
       return res
         .status(403)
         .json({ message: "Access denied to this division" });
@@ -89,7 +90,7 @@ router.get("/division/:divisionId", auth, async (req, res) => {
   }
 });
 
-// Create new credential
+// Create new credential - FIXED VERSION
 router.post(
   "/",
   [
@@ -110,11 +111,27 @@ router.post(
       const { title, website, username, password, description, division } =
         req.body;
 
-      // Check if user has access to this division
-      if (!req.user.divisions.includes(division) && req.user.role !== "admin") {
-        return res
-          .status(403)
-          .json({ message: "Access denied to this division" });
+      // FIXED: Check if user has access to this division
+      const userDivisionIds = req.user.divisions.map((div) =>
+        div._id.toString()
+      );
+      const hasAccess =
+        req.user.role === "admin" || userDivisionIds.includes(division);
+
+      console.log("🔑 CREATE CREDENTIAL - Division Access Debug:");
+      console.log("   - Requested division ID:", division);
+      console.log("   - User division IDs:", userDivisionIds);
+      console.log("   - Has access:", hasAccess);
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          message: "Access denied to this division",
+          debug: {
+            userDivisionIds: userDivisionIds,
+            requestedDivision: division,
+            divisionFound: userDivisionIds.includes(division),
+          },
+        });
       }
 
       // Verify division exists
@@ -151,7 +168,7 @@ router.post(
   }
 );
 
-// Update credential
+// Update credential - FIXED VERSION
 router.put(
   "/:credentialId",
   [
@@ -184,17 +201,18 @@ router.put(
         credential.createdBy.toString() === req.user.id;
 
       if (!canUpdate) {
-        return res
-          .status(403)
-          .json({
-            message: "Insufficient permissions to update this credential",
-          });
+        return res.status(403).json({
+          message: "Insufficient permissions to update this credential",
+        });
       }
 
-      // Check division access for non-admins
+      // FIXED: Check division access for non-admins
+      const userDivisionIds = req.user.divisions.map((div) =>
+        div._id.toString()
+      );
       if (
         req.user.role !== "admin" &&
-        !req.user.divisions.includes(credential.division.toString())
+        !userDivisionIds.includes(credential.division.toString())
       ) {
         return res
           .status(403)
@@ -228,7 +246,7 @@ router.put(
   }
 );
 
-// Delete credential
+// Delete credential - FIXED VERSION
 router.delete("/:credentialId", auth, async (req, res) => {
   try {
     const { credentialId } = req.params;
@@ -244,17 +262,16 @@ router.delete("/:credentialId", auth, async (req, res) => {
       credential.createdBy.toString() === req.user.id;
 
     if (!canDelete) {
-      return res
-        .status(403)
-        .json({
-          message: "Insufficient permissions to delete this credential",
-        });
+      return res.status(403).json({
+        message: "Insufficient permissions to delete this credential",
+      });
     }
 
-    // Check division access for non-admins
+    // FIXED: Check division access for non-admins
+    const userDivisionIds = req.user.divisions.map((div) => div._id.toString());
     if (
       req.user.role !== "admin" &&
-      !req.user.divisions.includes(credential.division.toString())
+      !userDivisionIds.includes(credential.division.toString())
     ) {
       return res
         .status(403)
